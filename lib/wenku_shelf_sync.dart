@@ -1,3 +1,4 @@
+import 'book_identity.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -45,8 +46,7 @@ class WenkuShelfSync extends ChangeNotifier with WidgetsBindingObserver {
   int? _identity;
   Set<int> _observed = {};
   Set<int>? _cloudObserved;
-  Set<int> get _local =>
-      library.shelf.where((id) => id > 0 && id < 0x60000000).toSet();
+  Set<int> get _local => library.shelf.where((id) => isWenkuBook(id)).toSet();
   void start() {
     _observed = _local;
     account.addListener(_accountChanged);
@@ -141,7 +141,7 @@ class WenkuShelfSync extends ChangeNotifier with WidgetsBindingObserver {
         }
         return (map[field] as List)
             .whereType<int>()
-            .where((id) => id > 0 && id < 0x60000000)
+            .where((id) => isWenkuBook(id))
             .toSet();
       }
 

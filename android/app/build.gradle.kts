@@ -74,6 +74,7 @@ android {
         }
         release {
             proguardFile(file("document-import.pro"))
+            proguardFile(file("legado.pro"))
             if (catalogProbe) proguardFile(file("catalog-probe.pro"))
             if (readerPreview) {
                 applicationIdSuffix = ".reader_preview"
@@ -118,5 +119,8 @@ dependencies {
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     // Keep the media host classes available to the app's shared-engine wiring.
     implementation("androidx.media:media:1.7.0")
+    implementation("org.mozilla:rhino:1.7.15")
+    implementation("com.jayway.jsonpath:json-path:2.9.0")
+    testImplementation("org.json:json:20250517")
     testImplementation("junit:junit:4.13.2")
 }

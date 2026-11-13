@@ -1,3 +1,4 @@
+import 'legado/source_media.dart';
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
@@ -20,7 +21,11 @@ class ReaderIllustrationCache {
   ReaderIllustrationCache({
     IllustrationRequest? request,
     this.maxBytes = 16 * 1024 * 1024,
-  }) : _request = request ?? LegacyTransport.illustration;
+  }) : _request =
+           request ??
+           ((url) => url.startsWith('wenku-source:')
+               ? SourceMedia.load(url)
+               : LegacyTransport.illustration(url));
   static final shared = ReaderIllustrationCache();
   final IllustrationRequest _request;
   final int maxBytes;

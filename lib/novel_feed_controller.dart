@@ -13,7 +13,20 @@ class NovelFeedController extends ChangeNotifier {
     this.repository, {
     this.search = false,
     this.initialItems = 0,
-  }) : assert(initialItems >= 0);
+  }) : assert(initialItems >= 0) {
+    if (repository is SourceChangeProvider) {
+      (repository as SourceChangeProvider).sourceChanges.addListener(
+        _sourceChanged,
+      );
+    }
+  }
+
+  void _sourceChanged() {
+    if (_disposed) return;
+    _reset();
+    unawaited(loadInitial());
+  }
+
   final NovelRepository repository;
   final bool search;
 
@@ -242,6 +255,11 @@ class NovelFeedController extends ChangeNotifier {
 
   @override
   void dispose() {
+    if (repository is SourceChangeProvider) {
+      (repository as SourceChangeProvider).sourceChanges.removeListener(
+        _sourceChanged,
+      );
+    }
     _disposed = true;
     _searchDelay?.cancel();
     _generation++;

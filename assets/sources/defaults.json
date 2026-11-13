@@ -1,0 +1,122 @@
+[
+  {
+    "bookSourceComment": "",
+    "bookSourceGroup": "小说",
+    "bookSourceName": "米读看书",
+    "bookSourceType": 0,
+    "bookSourceUrl": "https://api.midukanshu.com",
+    "customButton": false,
+    "customOrder": 23,
+    "enabled": true,
+    "enabledCookieJar": false,
+    "enabledExplore": false,
+    "eventListener": false,
+    "lastUpdateTime": 1769593545495,
+    "respondTime": 19900,
+    "ruleBookInfo": {
+      "lastChapter": "$.[-1].title"
+    },
+    "ruleContent": {
+      "content": "$..content##\\u0010|（未完待续）"
+    },
+    "ruleExplore": {},
+    "ruleSearch": {
+      "author": "$.author",
+      "bookList": "$.data.*",
+      "bookUrl": "$.book_id@js:\"https://book.midukanshu.com/book/chapter_list/100/\" + result + \".txt\"",
+      "coverUrl": "$.cover",
+      "intro": "$.description",
+      "kind": "{$.score}分&&$..name&&$.category",
+      "name": "$.title##（+.*|.*最新章节|\\(+.*",
+      "wordCount": "$.word_count"
+    },
+    "ruleToc": {
+      "chapterList": "$.[*]",
+      "chapterName": "$.title",
+      "chapterUrl": "https://book.midukanshu.com/book/chapter/segment/master/{$.bookId}_{$.chapterId}.txt?md5={$.content_md5}"
+    },
+    "searchUrl": "https://apiwz.midukanshu.com/fiction/search/search,{\n  \"method\": \"POST\",\n  \"body\": \"device=865166023475380&app=midu&keyword={{key}}&page={{page-1}}\"\n}",
+    "weight": 0
+  },
+  {
+    "bookSourceComment": "",
+    "bookSourceGroup": "小说",
+    "bookSourceName": "梧桐中文",
+    "bookSourceType": 0,
+    "bookSourceUrl": "http://www.wtzw.com",
+    "customButton": false,
+    "customOrder": 95,
+    "enabled": true,
+    "enabledCookieJar": false,
+    "enabledExplore": true,
+    "eventListener": false,
+    "lastUpdateTime": 1772088124667,
+    "respondTime": 20545,
+    "ruleBookInfo": {
+      "author": "class.sName@text",
+      "coverUrl": "class.w_pic@tag.img@src",
+      "intro": "class.pWorkInformation@text",
+      "lastChapter": "class.li_upDate@tag.a@text",
+      "name": "class.li_tit@tag.a@text"
+    },
+    "ruleContent": {
+      "content": "class.article@html"
+    },
+    "ruleExplore": {},
+    "ruleSearch": {
+      "author": "tag.a.2@text",
+      "bookList": "class.searchList@li",
+      "bookUrl": "class.sTit@tag.a@href",
+      "coverUrl": "tag.img@src",
+      "lastChapter": "tag.a.3@text",
+      "name": "class.sTit@text"
+    },
+    "ruleToc": {
+      "chapterList": "class.w_ulTxt w_ulTxt_3 clearfix@tag.li",
+      "chapterName": "tag.a@text",
+      "chapterUrl": "tag.a@href"
+    },
+    "searchUrl": "http://www.wtzw.com/search-{{key}}.html?null",
+    "weight": 0
+  },
+  {
+    "bookSourceGroup": "小说",
+    "bookSourceName": "逐浪小说",
+    "bookSourceType": 0,
+    "bookSourceUrl": "https://www.zhulang.com",
+    "customButton": false,
+    "customOrder": 112,
+    "enabled": true,
+    "enabledCookieJar": false,
+    "enabledExplore": false,
+    "eventListener": false,
+    "lastUpdateTime": 1789136916856,
+    "respondTime": 13874,
+    "ruleBookInfo": {
+      "author": "class.yellow@text",
+      "coverUrl": "class.bk-info@img@data-src",
+      "intro": "id.bk-brief@p@text",
+      "name": "tag.h3.0@text",
+      "tocUrl": "text.开始阅读@href"
+    },
+    "ruleContent": {
+      "content": "class.rd-txt@p@text"
+    },
+    "ruleExplore": {},
+    "ruleSearch": {
+      "author": "h4@text",
+      "bookList": "id.ret-list@li",
+      "bookUrl": "a@href",
+      "coverUrl": "img@data-src",
+      "name": "h3@text"
+    },
+    "ruleToc": {
+      "chapterList": "class.idx-ol@a",
+      "chapterName": "text",
+      "chapterUrl": "href",
+      "nextTocUrl": "class.blue.0@option!0@value"
+    },
+    "searchUrl": "https://m.zhulang.com/search/index.html?k={{key}}",
+    "weight": 0
+  }
+]

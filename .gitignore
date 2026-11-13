@@ -143,3 +143,9 @@ key.properties
 /tools/update-mirror/public/
 /tools/content-gateway/.dev.vars*
 /tools/content-gateway/.env*
+
+!/tools/legado-engine-tests/
+/tools/legado-engine-tests/.gradle/
+/tools/legado-engine-tests/build/
+
+/android/.kotlin/

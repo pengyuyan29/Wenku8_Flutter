@@ -6,6 +6,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'legado/source_store.dart';
+import 'legado/source_repository.dart';
+import 'legado/source_page.dart';
+import 'legado/source_media.dart';
 import 'app_ui.dart';
 import 'app_licenses.dart';
 import 'catalog.dart';
@@ -69,9 +73,18 @@ Future<void> main() async {
             account.authenticated,
           ),
   );
+  final sources = SourceStore(await SharedPreferences.getInstance());
+  if (!(await SharedPreferences.getInstance()).containsKey(legadoStoreKey)) {
+    await sources.importText(
+      await rootBundle.loadString('assets/sources/defaults.json'),
+    );
+    await sources.select('https://api.midukanshu.com');
+  }
+  SourceMedia.store = sources;
+  final sourceRepository = SourceRepository(legacy: remote, store: sources);
   final repository = defaultTargetPlatform == TargetPlatform.android
       ? OfflineNovelRepository(
-          remote: remote,
+          remote: sourceRepository,
           cache: await OfflineCacheStore.forApp(),
           local: await LocalBookStore.forApp(),
           network: network,
@@ -111,15 +124,18 @@ Future<void> main() async {
         )
       : null;
   runApp(
-    NovelApp(
-      state: state,
-      repository: repository,
-      features: features,
-      listening: listening,
-      network: network,
-      updates: defaultTargetPlatform == TargetPlatform.android
-          ? AppUpdates(preferences: await SharedPreferences.getInstance())
-          : null,
+    SourceScope(
+      store: sources,
+      child: NovelApp(
+        state: state,
+        repository: repository,
+        features: features,
+        listening: listening,
+        network: network,
+        updates: defaultTargetPlatform == TargetPlatform.android
+            ? AppUpdates(preferences: await SharedPreferences.getInstance())
+            : null,
+      ),
     ),
   );
   if (listening != null) {

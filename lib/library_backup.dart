@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'catalog.dart';
+import 'legado/source_store.dart';
 import 'book_identity.dart';
 import 'performance_preferences.dart';
 import 'local_book_media.dart';
@@ -48,6 +49,7 @@ final _recordKey = RegExp(
 );
 
 bool isLibraryRecordKey(String key) =>
+    key == legadoStoreKey ||
     backupPreferenceKeys.contains(key) ||
     _listKeys.contains(key) ||
     (_recordKey.hasMatch(key) &&
@@ -137,7 +139,11 @@ Map<String, Object> _validateRecords(Map<String, dynamic> input) {
     final key = entry.key;
     final value = entry.value;
     if (!isLibraryRecordKey(key)) throw const FormatException('备份包含未识别的记录');
-    if (key.startsWith('book_merge_')) {
+    if (key == legadoStoreKey) {
+      if (value is! String) throw const FormatException('书源索引格式有误');
+      SourceStore.decodeRecord(value);
+      output[key] = value;
+    } else if (key.startsWith('book_merge_')) {
       if (value is! List ||
           value.length > 20000 ||
           value.any((v) => v is! String || v.length > 512)) {

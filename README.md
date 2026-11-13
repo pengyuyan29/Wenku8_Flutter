@@ -1,3 +1,5 @@
+> 此工作分支新增普通网络小说的阅读书源支持，保留原有界面。首次启动使用米读看书，详见 [使用说明](docs/LEGADO_SOURCES.md)。下文为上游 0.4.1 的介绍与发布信息。
+
 <p align="center">
   <img src="assets/branding/app-icon.png" width="96" alt="轻小说文库" />
 </p>

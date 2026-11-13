@@ -10,6 +10,7 @@ import 'catalog.dart';
 import 'book_identity.dart';
 import 'reader_preferences.dart';
 import 'library_backup.dart';
+import 'legado/source_store.dart';
 import 'performance_preferences.dart';
 import 'app_typography.dart';
 import 'app_language.dart';
@@ -1076,8 +1077,7 @@ class LibraryState extends ChangeNotifier {
       final now = DateTime.now().millisecondsSinceEpoch;
       final added = <int>{};
       for (final id in {...add, ...remove}) {
-        if (id <= 0 ||
-            isLocalBook(id) ||
+        if (!isWenkuBook(id) ||
             shelfRevision(id) != (expectedRevisions[id] ?? 0)) {
           continue;
         }
@@ -1618,6 +1618,7 @@ class LibraryState extends ChangeNotifier {
   }
 
   Map<String, Object> _backupRecords() => {
+    legadoStoreKey: ?_prefs.getString(legadoStoreKey),
     for (final entry in _illustrations.entries)
       'illustration_layout_${entry.key}': jsonEncode(
         entry.value.map((item) => item.toJson()).toList(),
@@ -1835,6 +1836,12 @@ class LibraryState extends ChangeNotifier {
           ..._recentSearches,
           ...(records['recentSearches'] as List<String>? ?? const []),
         ].where((term) => seen.add(term.toLowerCase())).take(12).toList();
+        if (records[legadoStoreKey] case final String sourceRecord) {
+          changed[legadoStoreKey] = SourceStore.mergeRecords(
+            _prefs.getString(legadoStoreKey),
+            sourceRecord,
+          );
+        }
         changed['shelf'] = shelf.map((id) => '$id').toList();
         changed['reading_history_hidden'] = hidden.map((id) => '$id').toList();
         changed['local_shelf_hidden'] = hiddenLocal.map((id) => '$id').toList();

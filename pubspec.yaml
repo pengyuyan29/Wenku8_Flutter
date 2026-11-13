@@ -90,6 +90,7 @@ flutter:
     - assets/licenses/desugar-jdk.txt
     - assets/licenses/opencc.txt
     - assets/opencc/
+    - assets/sources/defaults.json
   fonts:
     - family: SourceHanSerifCN
       fonts:

@@ -18,6 +18,7 @@ import io.flutter.plugin.common.PluginRegistry
 
 /** The repository survives a detached UI while the audio engine remains alive. */
 internal fun attachWenkuEnginePlugins(engine: FlutterEngine) {
+    if (!engine.plugins.has(LegadoPlugin::class.java)) engine.plugins.add(LegadoPlugin())
     if (!engine.plugins.has(WenkuHostPlugin::class.java)) engine.plugins.add(WenkuHostPlugin())
     if (!engine.plugins.has(SystemSpeechPlugin::class.java)) engine.plugins.add(SystemSpeechPlugin())
     if (!engine.plugins.has(AppUpdatePlugin::class.java)) engine.plugins.add(AppUpdatePlugin())

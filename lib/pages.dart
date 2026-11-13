@@ -8,6 +8,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/services.dart';
 
+import 'legado/source_page.dart';
 import 'app_ui.dart';
 import 'app_search_field.dart';
 import 'setting_menu.dart';
@@ -849,27 +850,40 @@ class DiscoverPage extends StatelessWidget {
   Widget buildHeader(BuildContext context) => Row(
     children: [
       Expanded(
-        child: const ArchiveMasthead(
-          title: '轻小说文库',
-          code: 'WENKU8 / READING ARCHIVE',
+        child: ArchiveMasthead(
+          title: SourceScope.maybeOf(context) == null ? '轻小说文库' : '小说书库',
+          code: SourceScope.maybeOf(context) == null
+              ? 'WENKU8 / READING ARCHIVE'
+              : 'READING ARCHIVE',
           brand: true,
         ),
       ),
-      if (WenkuFeaturesScope.maybeOf(context) case final features?)
+      if (SourceScope.maybeOf(context) case final sources?)
         GlassIconButton(
-          icon: CupertinoIcons.square_grid_2x2,
-          label: '出版文库',
+          icon: CupertinoIcons.square_stack,
+          label: '书源',
           onPressed: () => pushNovelPage<void>(
             context,
-            PublicationLibraryPage(
-              catalog: features.publications,
-              account: features.account,
-              repository: repository,
-              state: state,
-            ),
+            SourcePage(store: sources),
             reduceMotion: state.reduceMotion,
           ),
         ),
+      if (SourceScope.maybeOf(context)?.active == null)
+        if (WenkuFeaturesScope.maybeOf(context) case final features?)
+          GlassIconButton(
+            icon: CupertinoIcons.square_grid_2x2,
+            label: '出版文库',
+            onPressed: () => pushNovelPage<void>(
+              context,
+              PublicationLibraryPage(
+                catalog: features.publications,
+                account: features.account,
+                repository: repository,
+                state: state,
+              ),
+              reduceMotion: state.reduceMotion,
+            ),
+          ),
       GlassIconButton(
         icon: CupertinoIcons.search,
         label: '搜索',
@@ -946,9 +960,18 @@ class DiscoverPage extends StatelessWidget {
                       _categoryHeader(context),
                       const SizedBox(height: 14),
                       if (books.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 90),
-                          child: Center(child: AppText('暂无书籍')),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 90),
+                          child: Center(
+                            child: AppText(
+                              SourceScope.maybeOf(
+                                        context,
+                                      )?.active?.hasExplore ==
+                                      false
+                                  ? '此书源没有发现列表，请点击右上角搜索'
+                                  : '暂无书籍',
+                            ),
+                          ),
                         )
                       else ...[
                         ArchiveFileCarousel(
@@ -1040,7 +1063,8 @@ class DiscoverPage extends StatelessWidget {
       Expanded(
         child: sectionHeader(
           context,
-          categoryTitle ??
+          SourceScope.maybeOf(context)?.active?.name ??
+              categoryTitle ??
               (feed?.tags.isNotEmpty == true
                   ? feed!.tags.join(' · ')
                   : feed?.sort.label) ??
@@ -1048,7 +1072,7 @@ class DiscoverPage extends StatelessWidget {
           '',
         ),
       ),
-      if (feed != null)
+      if (feed != null && SourceScope.maybeOf(context)?.active == null)
         GlassMenuAnchor(
           child: Builder(
             builder: (buttonContext) => GlassIconButton(

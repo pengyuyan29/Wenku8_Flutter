@@ -1,3 +1,4 @@
+import 'legado/source_page.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -162,6 +163,20 @@ class MyPage extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 24),
+              if (SourceScope.maybeOf(context) case final sources?) ...[
+                FeatureEntry(
+                  key: const ValueKey('my-sources'),
+                  title: '书源',
+                  subtitle: sources.active?.name ?? '轻小说文库 · 导入阅读书源',
+                  icon: CupertinoIcons.square_stack,
+                  onTap: () => pushNovelPage<void>(
+                    context,
+                    SourcePage(store: sources),
+                    reduceMotion: state.reduceMotion,
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
               ActiveListenableBuilder(
                 listenable: state.bookmarkChanges,
                 builder: (context) {

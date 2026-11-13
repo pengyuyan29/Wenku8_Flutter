@@ -1,3 +1,5 @@
+import 'book_identity.dart';
+import 'legado/source_media.dart';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
@@ -7,7 +9,9 @@ import 'package:flutter/services.dart';
 abstract final class LegacyCover {
   static const _channel = MethodChannel('org.mewx.wenku8/legacy_api');
   static final _cache = LegacyCoverCache(
-    request: (aid) => _channel.invokeMethod<Uint8List>('cover', {'aid': aid}),
+    request: (aid) => isSourceBook(aid)
+        ? SourceMedia.cover(aid)
+        : _channel.invokeMethod<Uint8List>('cover', {'aid': aid}),
   );
   static Uint8List? peek(int aid) => _cache.peek(aid);
   static Future<Uint8List> bytes(int aid) => _cache.load(aid);

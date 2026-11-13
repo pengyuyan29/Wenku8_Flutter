@@ -1,3 +1,4 @@
+import 'book_identity.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -369,7 +370,7 @@ class WenkuAccount extends ChangeNotifier {
       final remote = CloudBook.parse(await _send('action=bookcase&t=0'));
       final remoteIds = remote.map((book) => book.id).toSet();
       final missing = localIds
-          .where((id) => id > 0 && id < 0x60000000 && !remoteIds.contains(id))
+          .where((id) => isWenkuBook(id) && !remoteIds.contains(id))
           .toList();
       final uploaded = <int>[];
       Object? failure;

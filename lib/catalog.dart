@@ -412,3 +412,8 @@ const demoNovels = <Novel>[
     ],
   ),
 ];
+
+/// A source selection invalidates both discovery and active search cursors.
+abstract interface class SourceChangeProvider {
+  Listenable get sourceChanges;
+}

@@ -1,3 +1,4 @@
+import 'book_identity.dart';
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
@@ -81,7 +82,9 @@ class BookCommunityActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final features = WenkuFeaturesScope.maybeOf(context);
-    if (features == null) return const SizedBox.shrink();
+    if (features == null || !isWenkuBook(novel.id)) {
+      return const SizedBox.shrink();
+    }
     return AnimatedBuilder(
       animation: features.account,
       builder: (context, _) {

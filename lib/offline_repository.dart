@@ -60,7 +60,12 @@ class _ChapterRequest {
 /// Adds persistent offline reading without changing the remote request contract.
 /// Download notifications are independent of appearance/reader state updates.
 class OfflineNovelRepository extends FrameChangeNotifier
-    implements NovelRepository, ProgressiveTagCatalogue {
+    implements NovelRepository, ProgressiveTagCatalogue, SourceChangeProvider {
+  static final _unchangedSource = ChangeNotifier();
+  @override
+  Listenable get sourceChanges => remote is SourceChangeProvider
+      ? (remote as SourceChangeProvider).sourceChanges
+      : _unchangedSource;
   OfflineNovelRepository({
     required this.remote,
     required this.cache,

@@ -1,3 +1,4 @@
+import 'legado/source_page.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -78,6 +79,7 @@ class _LibraryBackupPageState extends State<LibraryBackupPage> {
     if (backup == null) return;
     await widget.state.restoreBackup(backup, importPreferences: _preferences);
     if (mounted) {
+      SourceScope.maybeOf(context)?.reload();
       setState(() => _preview = null);
       showNovelFeedback(context, '备份已合并，较新的阅读进度已保留');
     }
@@ -118,7 +120,7 @@ class _LibraryBackupPageState extends State<LibraryBackupPage> {
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 12),
-                const AppText('备份书架、阅读进度、书签、阅读历史、最近搜索和偏好。离线正文与账号信息不包含在备份中。'),
+                const AppText('备份书架、阅读进度、书签、阅读历史、最近搜索、书源与偏好。离线正文与账号信息不包含在备份中。'),
                 const SizedBox(height: 24),
                 ContentPanel(
                   child: Column(

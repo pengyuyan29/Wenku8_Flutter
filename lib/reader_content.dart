@@ -1,3 +1,4 @@
+import 'legado/source_media.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
@@ -75,6 +76,7 @@ String? readerIllustrationUrl(String paragraph) {
     return LocalImageLayout.parseSuffix(tail) == null ? null : uri.toString();
   }
   if (tail.isNotEmpty) return null;
+  if (uri != null && SourceMedia.valid(uri)) return uri.toString();
   if (uri == null ||
       !['https', 'http'].contains(uri.scheme) ||
       uri.userInfo.isNotEmpty ||
