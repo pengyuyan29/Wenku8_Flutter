@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'app_typography.dart';
+import 'optional_fonts.dart';
 
 const followAppFont = 'followApp';
 bool validFontChoice(Object? value, {bool follow = false}) =>
@@ -27,7 +28,19 @@ class UserFont {
 /// Files stay in private storage. The engine loads a face once, on selection,
 /// not on every rebuild or for every entry in the font catalogue.
 class UserFontStore extends ChangeNotifier {
-  UserFontStore({Directory? directory, this.loader}) : _directory = directory;
+  UserFontStore({
+    Directory? directory,
+    this.loader,
+    OptionalFontPack? optionalFonts,
+  }) : _directory = directory,
+       optionalFonts =
+           optionalFonts ??
+           OptionalFontPack(
+             directory: directory == null
+                 ? null
+                 : Directory('${directory.path}/optional-source-han'),
+           );
+  final OptionalFontPack optionalFonts;
   static const maxBytes = 32 * 1024 * 1024;
   final Future<void> Function(String family, File file)? loader;
   Directory? _directory;
@@ -38,12 +51,15 @@ class UserFontStore extends ChangeNotifier {
   UserFont? find(String id) =>
       _fonts.where((font) => font.id == id).firstOrNull;
   bool available(String id) =>
-      AppTypeface.values.any((font) => font.name == id) || find(id) != null;
+      id == 'system' ||
+      (id == 'sourceHanSerif' && optionalFonts.ready) ||
+      find(id) != null;
   String label(String id) => id == followAppFont
       ? '跟随 App'
       : find(id)?.name ?? AppTypeface.fromRecord(id).label;
-  String? family(String id) =>
-      find(id)?.family ?? AppTypeface.fromRecord(id).family;
+  String? family(String id) => !available(id)
+      ? null
+      : find(id)?.family ?? AppTypeface.fromRecord(id).family;
   Future<Directory> _root() async => _directory ??= Directory(
     '${(await getApplicationSupportDirectory()).path}/user-fonts',
   );
@@ -51,6 +67,7 @@ class UserFontStore extends ChangeNotifier {
       File('${root.path}/${font.id}.${font.extension}');
   Future<void> load() async {
     if (_loaded) return;
+    await optionalFonts.load();
     final root = await _root();
     final index = File('${root.path}/fonts.json');
     if (await index.exists()) {
@@ -80,6 +97,30 @@ class UserFontStore extends ChangeNotifier {
   }
 
   Future<void> ensureLoaded(String id) async {
+    if (id == 'sourceHanSerif') {
+      if (!optionalFonts.ready) return;
+      final pending = _loads.putIfAbsent(id, () async {
+        final files = await optionalFonts.fontFiles;
+        if (loader != null) {
+          for (final file in files) {
+            await loader!('SourceHanSerifCN', file);
+          }
+          return;
+        }
+        final face = FontLoader('SourceHanSerifCN');
+        for (final file in files) {
+          face.addFont(file.readAsBytes().then(ByteData.sublistView));
+        }
+        await face.load();
+      });
+      try {
+        await pending;
+      } catch (_) {
+        _loads.remove(id);
+        rethrow;
+      }
+      return;
+    }
     final font = find(id);
     if (font == null) return;
     final loading = _loads.putIfAbsent(id, () async {
@@ -156,6 +197,12 @@ class UserFontStore extends ChangeNotifier {
   }
 
   Future<void> remove(String id) async {
+    if (id == 'sourceHanSerif') {
+      await optionalFonts.remove();
+      _loads.remove(id);
+      notifyListeners();
+      return;
+    }
     final font = find(id);
     if (font == null) return;
     final index = _fonts.indexOf(font);
@@ -170,6 +217,12 @@ class UserFontStore extends ChangeNotifier {
     if (await file.exists()) await file.delete();
     _loads.remove(id);
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    optionalFonts.dispose();
+    super.dispose();
   }
 }
 

@@ -46,7 +46,7 @@ flutter build apk --debug --target-platform android-arm64
 
 ## 安装包体积
 
-ARM64 预览包从 53.0 MB 降至 39.4 MB（减少 25.6%）。原生库采用 APK 压缩存储，Android 安装时解压；这主要降低下载包大小。内置思源宋体 Regular/Bold 和字体覆盖范围保持不变。
+ARM64 预览包最初为 53.0 MB；原生库压缩后为 39.4 MB，改为可选下载字体后进一步降至 19.2 MB。原生库采用 APK 压缩存储，Android 安装时解压；这主要降低下载包大小。当前版本默认系统字体，思源宋体 Regular/Bold 改为可选下载内容，不再打入 APK。
 
 构建较小的 ARM64 发布预览包，并把 Dart 调试符号保存在包外：
 
@@ -55,4 +55,4 @@ ORG_GRADLE_PROJECT_wenkuReaderPreview=true flutter build apk --release \
   --target-platform android-arm64 --split-debug-info=../wenku8-symbols
 ```
 
-保留对应版本的符号文件，以便还原发布版错误堆栈。两个完整中文字体仍占 APK 约 20 MB；进一步降低体积需要改变内置字体或按需下载策略。
+保留对应版本的符号文件，以便还原发布版错误堆栈。字体页可显式下载两种字重（约 23.7 MB），校验完成后离线使用；支持取消、重试和删除。首启、预览与备份恢复均不会自动下载字体。

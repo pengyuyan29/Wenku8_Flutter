@@ -1,3 +1,4 @@
+import 'support/optional_font_fixture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -20,7 +21,7 @@ void main() {
   final prose = '这是一段可以同时首行缩进与两端对齐的测试文字。' * 18;
   setUpAll(() async {
     await (FontLoader('SourceHanSerifCN')..addFont(
-          rootBundle.load('assets/fonts/SourceHanSerifCN-Regular.otf'),
+          sourceHanFixture('Regular'),
         ))
         .load();
   });

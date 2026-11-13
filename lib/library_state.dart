@@ -380,10 +380,10 @@ class LibraryState extends ChangeNotifier {
   bool _disposed = false;
   bool _historyNotificationQueued = false;
 
-  static Future<LibraryState> load() async {
+  static Future<LibraryState> load({UserFontStore? fonts}) async {
     final prefs = await SharedPreferences.getInstance();
     await recoverLibraryRestore(prefs);
-    final state = LibraryState(prefs);
+    final state = LibraryState(prefs, fonts: fonts);
     final storedShelf = prefs.get('shelf');
     if (storedShelf is List<String> &&
         storedShelf.map(int.tryParse).whereType<int>().any(isLocalBook)) {
@@ -399,6 +399,13 @@ class LibraryState extends ChangeNotifier {
   Future<void> loadFonts() async {
     try {
       await fonts.load();
+      // Upgrading from the bundled-font build never starts a download.
+      if (!fonts.available('sourceHanSerif')) {
+        if (appFontChoice == 'sourceHanSerif') await setAppFont('system');
+        if (_readerTypeface == 'sourceHanSerif') {
+          await setReaderTypeface(followAppFont);
+        }
+      }
       await fonts.ensureLoaded(appFontId);
       await fonts.ensureLoaded(readerFontId);
       fontError = null;
@@ -558,6 +565,8 @@ class LibraryState extends ChangeNotifier {
   String fontLabel(String choice) =>
       choice == followAppFont || fonts.available(choice)
       ? fonts.label(choice)
+      : choice == 'sourceHanSerif'
+      ? '思源宋体（未下载，使用系统字体）'
       : '字体未在本机导入';
   PerformancePreferences get performance => _performance;
   bool get effectiveReduceMotion => _reduceMotion || !_performance.motion;
@@ -1462,7 +1471,7 @@ class LibraryState extends ChangeNotifier {
       return barrier.future.then((_) => _setFont(choice, reader: reader));
     }
     if (!(reader && choice == followAppFont) && !fonts.available(choice)) {
-      throw const FormatException('请先导入这款字体');
+      throw const FormatException('请先下载或导入这款字体');
     }
     await fonts.ensureLoaded(choice);
     await _queuePositionWrite(() async {

@@ -1,3 +1,4 @@
+import 'support/optional_font_fixture.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -103,9 +104,9 @@ void main() {
     if (_captureDirectory.isEmpty) return;
     await (FontLoader('SourceHanSerifCN')
           ..addFont(
-            rootBundle.load('assets/fonts/SourceHanSerifCN-Regular.otf'),
+            sourceHanFixture('Regular'),
           )
-          ..addFont(rootBundle.load('assets/fonts/SourceHanSerifCN-Bold.otf')))
+          ..addFont(sourceHanFixture('Bold')))
         .load();
     await (FontLoader('packages/cupertino_icons/CupertinoIcons')..addFont(
           rootBundle.load('packages/cupertino_icons/assets/CupertinoIcons.ttf'),

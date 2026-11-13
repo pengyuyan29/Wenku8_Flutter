@@ -17,8 +17,10 @@ class QuoteCardData {
     required this.book,
     required this.chapter,
     this.author = '',
+    this.fontFamily,
   });
   final String text, book, author, chapter;
+  final String? fontFamily;
 }
 
 /// The preview and PNG use the same laid-out drawing, not a screen capture.
@@ -62,7 +64,7 @@ class QuoteCardLayout {
       text: TextSpan(
         text: value,
         style: TextStyle(
-          fontFamily: 'SourceHanSerifCN',
+          fontFamily: data.fontFamily,
           fontSize: size,
           height: height,
           color: color,
@@ -156,7 +158,7 @@ class QuoteCardLayout {
       text: TextSpan(
         text: '“',
         style: TextStyle(
-          fontFamily: 'SourceHanSerifCN',
+          fontFamily: data.fontFamily,
           fontSize: 72,
           height: 1,
           color: muted.withValues(alpha: .32),

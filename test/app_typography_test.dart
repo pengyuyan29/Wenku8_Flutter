@@ -1,3 +1,4 @@
+import 'support/optional_font_fixture.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,11 +22,14 @@ void main() {
   test(
     'typeface persists, validates in backups and identifies reading layout',
     () async {
-      final state = await LibraryState.load();
+      final fonts = await cachedSourceHanFonts();
+      final state = await LibraryState.load(fonts: fonts);
       addTearDown(state.dispose);
       expect(state.appTypeface, AppTypeface.system);
       await state.setAppTypeface(AppTypeface.sourceHanSerif);
-      final reloaded = await LibraryState.load();
+      final reloaded = await LibraryState.load(
+        fonts: await cachedSourceHanFonts(),
+      );
       addTearDown(reloaded.dispose);
       expect(reloaded.appTypeface, AppTypeface.sourceHanSerif);
       await state.savePosition(
@@ -84,30 +88,38 @@ void main() {
       await expectLater(store.saveVoice(voice), throwsA(isA<SpeechFailure>()));
     },
   );
-  test('bundled font and license assets are readable', () async {
-    for (final weight in ['Regular', 'Bold']) {
-      final bytes = await rootBundle.load(
-        'assets/fonts/SourceHanSerifCN-$weight.otf',
+  test(
+    'optional font fixtures remain valid and only their license is bundled',
+    () async {
+      for (final weight in ['Regular', 'Bold']) {
+        final bytes = await sourceHanFixture(weight);
+        final assets = (await AssetManifest.loadFromAssetBundle(
+          rootBundle,
+        )).listAssets();
+        expect(
+          assets.contains('assets/fonts/SourceHanSerifCN-$weight.otf'),
+          isFalse,
+        );
+        expect(ascii.decode(bytes.buffer.asUint8List(0, 4)), 'OTTO');
+      }
+      expect(
+        await rootBundle.loadString('assets/fonts/OFL-SourceHanSerif.txt'),
+        contains('SIL OPEN FONT LICENSE'),
       );
-      expect(ascii.decode(bytes.buffer.asUint8List(0, 4)), 'OTTO');
-    }
-    expect(
-      await rootBundle.loadString('assets/fonts/OFL-SourceHanSerif.txt'),
-      contains('SIL OPEN FONT LICENSE'),
-    );
-    expect(
-      await rootBundle.loadString('assets/licenses/edge-tts.txt'),
-      contains('LESSER GENERAL PUBLIC LICENSE'),
-    );
-  });
+      expect(
+        await rootBundle.loadString('assets/licenses/edge-tts.txt'),
+        contains('LESSER GENERAL PUBLIC LICENSE'),
+      );
+    },
+  );
   testWidgets(
     'switching the global typeface preserves the measured reader paragraph',
     (tester) async {
-      await (FontLoader('SourceHanSerifCN')..addFont(
-            rootBundle.load('assets/fonts/SourceHanSerifCN-Regular.otf'),
-          ))
-          .load();
-      final state = await LibraryState.load();
+      await (FontLoader(
+        'SourceHanSerifCN',
+      )..addFont(sourceHanFixture('Regular'))).load();
+      final fonts = (await tester.runAsync(cachedSourceHanFonts))!;
+      final state = await LibraryState.load(fonts: fonts);
       final book = demoNovels.first.withChapters([
         NovelChapter(
           '字体测试',
@@ -163,7 +175,8 @@ void main() {
   testWidgets(
     'global font follows persisted switch and returns to the system',
     (tester) async {
-      final state = await LibraryState.load();
+      final fonts = (await tester.runAsync(cachedSourceHanFonts))!;
+      final state = await LibraryState.load(fonts: fonts);
       await tester.pumpWidget(
         NovelApp(state: state, repository: const DemoNovelRepository()),
       );

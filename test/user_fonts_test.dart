@@ -1,3 +1,5 @@
+import 'package:wenku8_flutter/optional_fonts.dart';
+import 'support/optional_font_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -37,11 +39,15 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final root = await Directory.systemTemp.createTemp('wenku-fonts-');
       addTearDown(() => root.delete(recursive: true));
+      final optionalFixture = await cachedSourceHanFonts();
+      addTearDown(optionalFixture.dispose);
+      final optionalRoot = await optionalFixture.optionalFonts.directory;
       var loads = 0;
       UserFontStore store() => UserFontStore(
         directory: root,
-        loader: (_, _) async {
-          loads++;
+        optionalFonts: OptionalFontPack(directory: optionalRoot),
+        loader: (family, _) async {
+          if (family != 'SourceHanSerifCN') loads++;
         },
       );
       final fonts = store();
@@ -162,7 +168,11 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     SharedPreferences.setMockInitialValues({'reduceMotion': true});
-    final state = LibraryState(await SharedPreferences.getInstance());
+    final fonts = (await tester.runAsync(cachedSourceHanFonts))!;
+    final state = LibraryState(
+      await SharedPreferences.getInstance(),
+      fonts: fonts,
+    );
     addTearDown(state.dispose);
     final key = GlobalKey();
     await tester.pumpWidget(
@@ -219,12 +229,16 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const ValueKey('import-font')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('import-font')));
       await ioSettle(
         tester,
         until: () => fonts.fonts.isNotEmpty && documents.released,
       );
       final font = fonts.fonts.single;
+      await tester.ensureVisible(find.text('阅读器字体'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('阅读器字体'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(ValueKey('reader-font-${font.id}')));
@@ -234,6 +248,38 @@ void main() {
       expect(await tester.runAsync(() => Directory(root.path).exists()), true);
       expect(tester.takeException(), isNull);
       await captureReview(tester, key, 'font-import-real-face');
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
+    'system is default and unavailable optional fonts cannot be selected',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({'reduceMotion': true});
+      final root = (await tester.runAsync(
+        () => Directory.systemTemp.createTemp('font-optional-ui-'),
+      ))!;
+      addTearDown(() => root.delete(recursive: true));
+      final fonts = UserFontStore(directory: root);
+      final state = LibraryState(
+        await SharedPreferences.getInstance(),
+        fonts: fonts,
+      );
+      addTearDown(state.dispose);
+      await tester.pumpWidget(
+        MaterialApp(home: FontSettingsPage(state: state)),
+      );
+      await tester.pumpAndSettle();
+      expect(state.appFontId, 'system');
+      expect(state.readerFontId, 'system');
+      await tester.tap(find.byKey(const ValueKey('select-app-font')));
+      await tester.pumpAndSettle();
+      final choice = tester.widget<GlassTextButton>(
+        find.byKey(const ValueKey('app-font-sourceHanSerif')),
+      );
+      expect(choice.onPressed, isNull);
+      expect(fonts.optionalFonts.downloading, isFalse);
+      expect(find.text('未下载，可在字体页下载后选用'), findsOneWidget);
+      expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },
   );

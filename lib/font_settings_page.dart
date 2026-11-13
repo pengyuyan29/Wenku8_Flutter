@@ -166,7 +166,13 @@ class _FontSettingsPageState extends State<FontSettingsPage> {
       builder: (ready, failed) => GlassTextButton(
         key: ValueKey('${reader ? 'reader' : 'app'}-font-$id'),
         selected: selected,
-        onPressed: busy ? null : onTap,
+        onPressed:
+            busy ||
+                !state.fonts.available(
+                  id == followAppFont ? state.appFontId : id,
+                )
+            ? null
+            : onTap,
         child: Row(
           children: [
             SizedBox(
@@ -195,7 +201,13 @@ class _FontSettingsPageState extends State<FontSettingsPage> {
                   ),
                   const SizedBox(height: 5),
                   AppText(
-                    failed ? '字体预览暂不可用' : '春日的光，落在书页上。',
+                    !state.fonts.available(
+                          id == followAppFont ? state.appFontId : id,
+                        )
+                        ? '未下载，可在字体页下载后选用'
+                        : failed
+                        ? '字体预览暂不可用'
+                        : '春日的光，落在书页上。',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -242,11 +254,98 @@ class _FontSettingsPageState extends State<FontSettingsPage> {
     ];
   }
 
+  Future<void> _downloadOptional() => _perform(() async {
+    final pack = widget.state.fonts.optionalFonts;
+    final success = await pack.download();
+    if (success) {
+      await widget.state.loadFonts();
+      if (mounted) showNovelFeedback(context, '思源宋体已下载，可分别设为 App 或阅读器字体');
+    } else if (pack.error != null) {
+      throw FormatException(pack.error!);
+    }
+  });
+  Future<void> _removeOptional() async {
+    if (!await confirmNovelAction(
+      context,
+      title: '删除已下载的思源宋体？',
+      message: '使用它的位置会恢复系统字体，之后可以重新下载。',
+      confirmLabel: '删除字体',
+      reduceMotion: widget.state.reduceMotion,
+    )) {
+      return;
+    }
+    await _perform(() => widget.state.removeUserFont('sourceHanSerif'));
+  }
+
+  Widget _optionalFont() {
+    final pack = widget.state.fonts.optionalFonts;
+    final size = (pack.totalBytes / 1000000).toStringAsFixed(1);
+    return ContentPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ArchiveSection(title: '可选字体', code: 'TYPE / DOWNLOAD'),
+          const SizedBox(height: 14),
+          const AppText(
+            '思源宋体',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          AppText(
+            pack.ready
+                ? '已下载 · 常规与粗体 · 可离线使用'
+                : '默认使用系统字体。可下载思源宋体的常规与粗体，约 $size MB；也可以导入自己的字体。',
+            style: const TextStyle(height: 1.7),
+          ),
+          if (pack.downloading) ...[
+            const SizedBox(height: 14),
+            LinearProgressIndicator(
+              key: const ValueKey('font-download-progress'),
+              value: pack.progress,
+            ),
+            const SizedBox(height: 8),
+            AppText(
+              '正在下载 ${(pack.received / 1000000).toStringAsFixed(1)} / $size MB',
+            ),
+            GlassTextButton(
+              key: const ValueKey('cancel-font-download'),
+              onPressed: pack.cancel,
+              child: const AppText('取消下载'),
+            ),
+          ] else ...[
+            if (pack.cancelled)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: AppText('下载已取消，可重新下载'),
+              ),
+            const SizedBox(height: 12),
+            GlassTextButton(
+              key: const ValueKey('download-source-han'),
+              onPressed: busy
+                  ? null
+                  : pack.ready
+                  ? _removeOptional
+                  : _downloadOptional,
+              child: AppText(
+                pack.ready
+                    ? '删除下载的字体'
+                    : pack.error != null
+                    ? '重新下载思源宋体'
+                    : '下载思源宋体',
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: Listenable.merge([
       widget.state.settingsChanges,
       widget.state.fonts,
+      widget.state.fonts.optionalFonts,
     ]),
     builder: (context, _) => Scaffold(
       body: Atmosphere(
@@ -284,6 +383,8 @@ class _FontSettingsPageState extends State<FontSettingsPage> {
                     ..._readerChoices()
                   else
                     _selection(reader: true),
+                  const SizedBox(height: 28),
+                  _optionalFont(),
                   const SizedBox(height: 28),
                   const ArchiveSection(title: '我的字体', code: 'TTF / OTF'),
                   const SizedBox(height: 14),
@@ -362,6 +463,7 @@ class _FontFacePreview extends StatefulWidget {
 
 class _FontFacePreviewState extends State<_FontFacePreview> {
   Future<void>? _loading;
+  bool _available = false;
   @override
   void initState() {
     super.initState();
@@ -369,7 +471,8 @@ class _FontFacePreviewState extends State<_FontFacePreview> {
   }
 
   void _prepare() {
-    _loading = widget.fonts.find(widget.id) == null
+    _available = widget.fonts.available(widget.id);
+    _loading = !widget.fonts.available(widget.id) || widget.id == 'system'
         ? null
         : widget.fonts.ensureLoaded(widget.id);
   }
@@ -377,14 +480,16 @@ class _FontFacePreviewState extends State<_FontFacePreview> {
   @override
   void didUpdateWidget(_FontFacePreview oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.id != widget.id || oldWidget.fonts != widget.fonts) {
+    if (oldWidget.id != widget.id ||
+        oldWidget.fonts != widget.fonts ||
+        _available != widget.fonts.available(widget.id)) {
       _prepare();
     }
   }
 
   @override
   Widget build(BuildContext context) => _loading == null
-      ? widget.builder(true, false)
+      ? widget.builder(widget.fonts.available(widget.id), false)
       : FutureBuilder<void>(
           future: _loading,
           builder: (context, snapshot) => widget.builder(

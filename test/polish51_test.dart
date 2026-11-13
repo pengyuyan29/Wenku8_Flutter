@@ -1,3 +1,4 @@
+import 'support/optional_font_fixture.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -73,7 +74,7 @@ void main() {
   setUpAll(() async {
     await loadReviewFonts();
     await (FontLoader('SourceHanSerifCN')..addFont(
-          rootBundle.load('assets/fonts/SourceHanSerifCN-Regular.otf'),
+          sourceHanFixture('Regular'),
         ))
         .load();
   });

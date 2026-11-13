@@ -202,8 +202,9 @@ class _BookmarkLibraryPageState extends State<BookmarkLibraryPage> {
                             mark.quote,
                             maxLines: 5,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: 'SourceHanSerifCN',
+                            style: TextStyle(
+                              fontFamily:
+                                  widget.state.readerFontFamily ?? 'Roboto',
                               fontSize: 15,
                               height: 1.75,
                             ),
@@ -246,6 +247,7 @@ class _BookmarkLibraryPageState extends State<BookmarkLibraryPage> {
                                   context,
                                   QuoteCardPage(
                                     data: QuoteCardData(
+                                      fontFamily: widget.state.readerFontFamily,
                                       text: mark.quote,
                                       book:
                                           novel?.title ?? '书籍 ${entry.novelId}',
