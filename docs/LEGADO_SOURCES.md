@@ -43,3 +43,16 @@ flutter build apk --debug --target-platform android-arm64
 ```
 
 测试覆盖本地 HTTP 服务上的 Cookie、POST、GBK、CSS/XPath/JSON/JS、两类分页、图片标记，以及 Flutter 侧 ID 碰撞、目录重排、源切换时的过期结果、重启后的离线阅读、备份冲突和导入界面。可用 `LEGADO_SOURCE_FILE` 指定用户订阅运行额外导入/备份大小测试；测试不会把订阅复制进仓库。
+
+## 安装包体积
+
+ARM64 预览包从 53.0 MB 降至 39.4 MB（减少 25.6%）。原生库采用 APK 压缩存储，Android 安装时解压；这主要降低下载包大小。内置思源宋体 Regular/Bold 和字体覆盖范围保持不变。
+
+构建较小的 ARM64 发布预览包，并把 Dart 调试符号保存在包外：
+
+```sh
+ORG_GRADLE_PROJECT_wenkuReaderPreview=true flutter build apk --release \
+  --target-platform android-arm64 --split-debug-info=../wenku8-symbols
+```
+
+保留对应版本的符号文件，以便还原发布版错误堆栈。两个完整中文字体仍占 APK 约 20 MB；进一步降低体积需要改变内置字体或按需下载策略。

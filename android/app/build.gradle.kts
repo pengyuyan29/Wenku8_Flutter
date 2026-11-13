@@ -22,6 +22,9 @@ android {
     // The separately authorized API runtime must remain byte-for-byte intact.
     // AGP otherwise strips its symbols even when jniLibs contains original files.
     packaging.jniLibs.keepDebugSymbols.add("**/libcpp.so")
+    // Compress native libraries in the APK; Android extracts them at install.
+    // This keeps the original fonts and reader appearance in compact downloads.
+    packaging.jniLibs.useLegacyPackaging = true
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
