@@ -2910,6 +2910,16 @@ class InlineSearchResults extends StatelessWidget {
             Column(
               children: [
                 const AppText('推荐载入失败，仍可搜索书名或作者'),
+                AppText(
+                  feed.error is FormatException
+                      ? (feed.error as FormatException).message
+                      : '${feed.error}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
                 GlassTextButton(
                   onPressed: feed.retry,
                   child: const AppText('重试'),
@@ -2928,6 +2938,9 @@ class InlineSearchResults extends StatelessWidget {
       return ContentNotice(
         icon: CupertinoIcons.wifi_exclamationmark,
         title: '搜索失败，请稍后重试',
+        message: feed.error is FormatException
+            ? (feed.error as FormatException).message
+            : '${feed.error}',
         onRetry: feed.retry,
       );
     }
