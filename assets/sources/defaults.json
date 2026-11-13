@@ -50,6 +50,7 @@
     "enabledCookieJar": false,
     "enabledExplore": true,
     "eventListener": false,
+    "exploreUrl": "http://www.wtzw.com",
     "lastUpdateTime": 1772088124667,
     "respondTime": 20545,
     "ruleBookInfo": {
@@ -62,7 +63,14 @@
     "ruleContent": {
       "content": "class.article@html"
     },
-    "ruleExplore": {},
+    "ruleExplore": {
+      "author": "class.sDes@text##\\s*\\|\\s*.*",
+      "bookList": "class.selectPicTxt@tag.li",
+      "bookUrl": "class.w_pic@tag.a@href",
+      "coverUrl": "class.w_pic@tag.img@src",
+      "intro": "class.sIntro_2@text",
+      "name": "class.sTit@tag.a@text"
+    },
     "ruleSearch": {
       "author": "tag.a.2@text",
       "bookList": "class.searchList@li",
@@ -88,8 +96,9 @@
     "customOrder": 112,
     "enabled": true,
     "enabledCookieJar": false,
-    "enabledExplore": false,
+    "enabledExplore": true,
     "eventListener": false,
+    "exploreUrl": "https://m.zhulang.com/rank/collection.html",
     "lastUpdateTime": 1789136916856,
     "respondTime": 13874,
     "ruleBookInfo": {
@@ -102,7 +111,14 @@
     "ruleContent": {
       "content": "class.rd-txt@p@text"
     },
-    "ruleExplore": {},
+    "ruleExplore": {
+      "author": "tag.h4@text",
+      "bookList": "class.rank-list@tag.li",
+      "bookUrl": "tag.a@href",
+      "coverUrl": "tag.img@data-src",
+      "intro": "tag.p@text",
+      "name": "tag.h3@text"
+    },
     "ruleSearch": {
       "author": "h4@text",
       "bookList": "id.ret-list@li",

@@ -42,6 +42,7 @@ void main() {
             {
               ('file', 'wenku8-offline-v1'),
               ('file', 'wenku8-illustrations-v1'),
+              ('file', 'optional-fonts'),
               ('sharedpref', 'wenku_account_session.xml'),
               ('sharedpref', 'wenku_web_session.xml'),
               ('sharedpref', 'book_scan_folders.xml'),

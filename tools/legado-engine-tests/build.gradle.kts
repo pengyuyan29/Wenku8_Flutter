@@ -20,3 +20,9 @@ tasks.register<JavaExec>("smoke") {
     args(providers.gradleProperty("sourceFile").getOrElse("sources.json"), providers.gradleProperty("sourceIndex").getOrElse("12"), providers.gradleProperty("query").getOrElse("斗破"))
     systemProperties(System.getProperties().entries.filter { it.key.toString().startsWith("http.") || it.key.toString().startsWith("https.") }.associate { it.key.toString() to it.value })
 }
+tasks.register<JavaExec>("explore") {
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("ExploreSmokeKt")
+    args(providers.gradleProperty("sourceFile").getOrElse("sources.json"), providers.gradleProperty("sourceIndex").getOrElse("0"))
+    systemProperties(System.getProperties().entries.filter { it.key.toString().startsWith("http.") || it.key.toString().startsWith("https.") }.associate { it.key.toString() to it.value })
+}
