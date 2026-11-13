@@ -153,6 +153,7 @@ void main() {
         jsonEncode([sourceJson('a.test'), sourceJson('b.test')]),
       );
       await store.select('https://a.test');
+      await store.enable('https://b.test', false);
       final bridge = FixtureBridge();
       final remote = SourceRepository(
         legacy: const DemoNovelRepository(),
@@ -166,7 +167,8 @@ void main() {
       addTearDown(offline.dispose);
       addTearDown(cache.dispose);
       final found = (await remote.search('测试')).single;
-      await store.select('https://b.test');
+      await store.enable('https://a.test', false);
+      await store.enable('https://b.test', true);
       final detail = await offline.detail(found);
       final chapters = await offline.chapters(found.id);
       expect(detail.id, found.id);
@@ -277,7 +279,7 @@ void main() {
     final feed = NovelFeedController(offline, search: true);
     addTearDown(feed.dispose);
     final old = feed.searchFor('测试');
-    await store.select('https://b.test');
+    await store.enable('https://a.test', false);
     for (var i = 0; i < 30 && (feed.loading || feed.items.isEmpty); i++) {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
@@ -291,6 +293,27 @@ void main() {
     await old;
     expect(feed.items.single.id, selectedId);
     expect(store.book(selectedId)?['source'], 'https://b.test');
+  });
+  test('search aggregates every enabled source and reports its channel', () async {
+    await store.importText(
+      jsonEncode([sourceJson('a.test'), sourceJson('b.test')]),
+    );
+    final bridge = FixtureBridge();
+    final repository = SourceRepository(
+      legacy: const DemoNovelRepository(),
+      store: store,
+      bridge: bridge,
+    );
+    final page = await repository.searchPage('测试');
+    expect(page.items.length, 2);
+    expect(
+      page.items.map((book) => repository.channelNameOf(book.id)).toSet(),
+      {'a.test', 'b.test'},
+    );
+    await store.enable('https://a.test', false);
+    final remaining = await repository.searchPage('测试');
+    expect(remaining.items.length, 1);
+    expect(repository.channelNameOf(remaining.items.single.id), 'b.test');
   });
   test('bundled ordinary novel sources import and can be selected', () async {
     final text = await File('assets/sources/defaults.json').readAsString();
@@ -319,7 +342,7 @@ void main() {
     },
     skip: providedFile == null,
   );
-  testWidgets('source UI imports JSON and selects a source', (tester) async {
+  testWidgets('source UI imports JSON and enables the source', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: SourcePage(store: store, bridge: FixtureBridge()),
@@ -358,15 +381,8 @@ void main() {
     );
     scroll.position.jumpTo(scroll.position.maxScrollExtent);
     await tester.pumpAndSettle();
-    expect(find.text('使用此源'), findsOneWidget);
-    await tester.runAsync(() async {
-      await tester.tap(find.text('使用此源'));
-      for (var i = 0; i < 50 && store.active == null; i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      }
-    });
-    await tester.pumpAndSettle();
-    expect(store.active?.id, 'https://a.test');
+    expect(find.text('测试'), findsOneWidget);
+    expect(store.sources.single.enabled, isTrue);
     expect(tester.takeException(), isNull);
   });
 }

@@ -8,7 +8,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/services.dart';
 
-import 'legado/source_page.dart';
+import 'legado/source_repository.dart';
 import 'app_ui.dart';
 import 'app_search_field.dart';
 import 'setting_menu.dart';
@@ -532,6 +532,9 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                                 state: widget.state,
                                 repository: widget.repository,
                                 onOpenBook: _dismissSearchKeyboard,
+                                showChannelFilter:
+                                    _searchScope == 0 &&
+                                    widget.repository is SourceRepository,
                                 showSources:
                                     _searchScope == 1 &&
                                     widget.state.combinedShelf,
@@ -849,41 +852,28 @@ class DiscoverPage extends StatelessWidget {
 
   Widget buildHeader(BuildContext context) => Row(
     children: [
-      Expanded(
+      const Expanded(
         child: ArchiveMasthead(
-          title: SourceScope.maybeOf(context) == null ? '轻小说文库' : '小说书库',
-          code: SourceScope.maybeOf(context) == null
-              ? 'WENKU8 / READING ARCHIVE'
-              : 'READING ARCHIVE',
+          title: '轻小说文库',
+          code: 'WENKU8 / READING ARCHIVE',
           brand: true,
         ),
       ),
-      if (SourceScope.maybeOf(context) case final sources?)
+      if (WenkuFeaturesScope.maybeOf(context) case final features?)
         GlassIconButton(
-          icon: CupertinoIcons.square_stack,
-          label: '书源',
+          icon: CupertinoIcons.square_grid_2x2,
+          label: '出版文库',
           onPressed: () => pushNovelPage<void>(
             context,
-            SourcePage(store: sources),
+            PublicationLibraryPage(
+              catalog: features.publications,
+              account: features.account,
+              repository: repository,
+              state: state,
+            ),
             reduceMotion: state.reduceMotion,
           ),
         ),
-      if (SourceScope.maybeOf(context)?.active == null)
-        if (WenkuFeaturesScope.maybeOf(context) case final features?)
-          GlassIconButton(
-            icon: CupertinoIcons.square_grid_2x2,
-            label: '出版文库',
-            onPressed: () => pushNovelPage<void>(
-              context,
-              PublicationLibraryPage(
-                catalog: features.publications,
-                account: features.account,
-                repository: repository,
-                state: state,
-              ),
-              reduceMotion: state.reduceMotion,
-            ),
-          ),
       GlassIconButton(
         icon: CupertinoIcons.search,
         label: '搜索',
@@ -960,18 +950,9 @@ class DiscoverPage extends StatelessWidget {
                       _categoryHeader(context),
                       const SizedBox(height: 14),
                       if (books.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 90),
-                          child: Center(
-                            child: AppText(
-                              SourceScope.maybeOf(
-                                        context,
-                                      )?.active?.hasExplore ==
-                                      false
-                                  ? '此书源没有发现列表，请点击右上角搜索'
-                                  : '暂无书籍',
-                            ),
-                          ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 90),
+                          child: Center(child: AppText('暂无书籍')),
                         )
                       else ...[
                         ArchiveFileCarousel(
@@ -1063,8 +1044,7 @@ class DiscoverPage extends StatelessWidget {
       Expanded(
         child: sectionHeader(
           context,
-          SourceScope.maybeOf(context)?.active?.name ??
-              categoryTitle ??
+          categoryTitle ??
               (feed?.tags.isNotEmpty == true
                   ? feed!.tags.join(' · ')
                   : feed?.sort.label) ??
@@ -1072,7 +1052,7 @@ class DiscoverPage extends StatelessWidget {
           '',
         ),
       ),
-      if (feed != null && SourceScope.maybeOf(context)?.active == null)
+      if (feed != null)
         GlassMenuAnchor(
           child: Builder(
             builder: (buttonContext) => GlassIconButton(
@@ -2856,7 +2836,7 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
-class InlineSearchResults extends StatelessWidget {
+class InlineSearchResults extends StatefulWidget {
   const InlineSearchResults({
     super.key,
     required this.state,
@@ -2867,6 +2847,7 @@ class InlineSearchResults extends StatelessWidget {
     this.emptyQueryTitle = '你可能会喜欢',
     this.showSources = false,
     this.fromCache = false,
+    this.showChannelFilter = false,
   });
   final LibraryState state;
   final NovelRepository repository;
@@ -2874,20 +2855,92 @@ class InlineSearchResults extends StatelessWidget {
   final VoidCallback onOpenBook;
   final ValueChanged<String>? onRecall;
   final String emptyQueryTitle;
-  final bool showSources, fromCache;
+  final bool showSources, fromCache, showChannelFilter;
+
+  @override
+  State<InlineSearchResults> createState() => _InlineSearchResultsState();
+}
+
+class _InlineSearchResultsState extends State<InlineSearchResults> {
+  String? _channel;
+
+  LibraryState get state => widget.state;
+  NovelRepository get repository => widget.repository;
+  NovelFeedController get feed => widget.feed;
+  VoidCallback get onOpenBook => widget.onOpenBook;
+  ValueChanged<String>? get onRecall => widget.onRecall;
+  String get emptyQueryTitle => widget.emptyQueryTitle;
+  bool get showSources => widget.showSources;
+  bool get fromCache => widget.fromCache;
+
+  /// Channel names in source order, derived from the aggregated result set.
+  List<String> _channels() {
+    final repo = repository;
+    if (repo is! SourceRepository) return const [];
+    final names = <String>[];
+    for (final book in feed.items) {
+      final name = repo.channelNameOf(book.id);
+      if (name != null && name.isNotEmpty && !names.contains(name)) {
+        names.add(name);
+      }
+    }
+    return names;
+  }
+
+  /// Aggregated results stay together; the chips only narrow the visible list.
+  Widget _channelBar(List<String> channels, String? channel) {
+    if (channels.length < 2) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        children: [
+          GlassTextButton(
+            compact: true,
+            selected: channel == null,
+            onPressed: () => setState(() => _channel = null),
+            child: const AppText('全部'),
+          ),
+          for (final name in channels)
+            GlassTextButton(
+              compact: true,
+              selected: channel == name,
+              onPressed: () => setState(() => _channel = name),
+              child: AppText(name),
+            ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: feed,
-    builder: (context, _) => LoadedContentSequence(
-      generation: feed.resultRevision,
-      firstIndex: feed.resultStartIndex == 0 ? 0 : feed.resultStartIndex + 1,
-      child: _buildResults(context),
-    ),
+    builder: (context, _) {
+      final channels = widget.showChannelFilter ? _channels() : const <String>[];
+      final channel = channels.contains(_channel) ? _channel : null;
+      final repo = repository;
+      final books = channel == null || repo is! SourceRepository
+          ? feed.items
+          : [
+              for (final book in feed.items)
+                if (repo.channelNameOf(book.id) == channel) book,
+            ];
+      return LoadedContentSequence(
+        generation: feed.resultRevision,
+        firstIndex: feed.resultStartIndex == 0 ? 0 : feed.resultStartIndex + 1,
+        child: _buildResults(context, books, channels, channel),
+      );
+    },
   );
 
-  Widget _buildResults(BuildContext context) {
-    final books = feed.items;
+  Widget _buildResults(
+    BuildContext context,
+    List<Novel> books,
+    List<String> channels,
+    String? channel,
+  ) {
     if (books.isEmpty &&
         feed.query.isEmpty &&
         onRecall != null &&
@@ -2942,6 +2995,21 @@ class InlineSearchResults extends StatelessWidget {
             ? (feed.error as FormatException).message
             : '${feed.error}',
         onRetry: feed.retry,
+      );
+    }
+    if (books.isEmpty && feed.items.isNotEmpty) {
+      return ListView(
+        padding: EdgeInsets.fromLTRB(
+          22,
+          MediaQuery.paddingOf(context).top + FrostedHeader.toolbarHeight + 20,
+          22,
+          MediaQuery.paddingOf(context).bottom + 24,
+        ),
+        children: [
+          _channelBar(channels, channel),
+          const SizedBox(height: 40),
+          const Center(child: AppText('该渠道没有结果，选择「全部」查看聚合结果')),
+        ],
       );
     }
     if (books.isEmpty) {
@@ -3001,6 +3069,7 @@ class InlineSearchResults extends StatelessWidget {
                           fontSize: 18,
                         ),
                       ),
+                      _channelBar(channels, channel),
                     ],
                   ),
                 ),

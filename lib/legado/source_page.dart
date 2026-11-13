@@ -226,23 +226,6 @@ class _SourcePageState extends State<SourcePage> {
                   child: SelectableText(_status!),
                 ),
               const SizedBox(height: 20),
-              ContentPanel(
-                onTap: _busy == null
-                    ? () => _run('正在切换…', () => widget.store.select(null))
-                    : null,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: AppText(
-                        '轻小说文库',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    if (widget.store.active == null)
-                      const Icon(CupertinoIcons.check_mark_circled_solid),
-                  ],
-                ),
-              ),
               for (final source in widget.store.sources)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -260,10 +243,6 @@ class _SourcePageState extends State<SourcePage> {
                                 ),
                               ),
                             ),
-                            if (widget.store.active?.id == source.id)
-                              const Icon(
-                                CupertinoIcons.check_mark_circled_solid,
-                              ),
                             Switch(
                               value: source.enabled,
                               onChanged: _busy == null
@@ -280,15 +259,6 @@ class _SourcePageState extends State<SourcePage> {
                         Wrap(
                           spacing: 12,
                           children: [
-                            GlassTextButton(
-                              onPressed: _busy == null && source.enabled
-                                  ? () => _run(
-                                      '正在切换…',
-                                      () => widget.store.select(source.id),
-                                    )
-                                  : null,
-                              child: const AppText('使用此源'),
-                            ),
                             GlassTextButton(
                               onPressed: _busy == null
                                   ? () => _debug(source)

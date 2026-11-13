@@ -81,22 +81,79 @@ class SourceRepository extends NovelRepository
   @override
   Future<List<Novel>> search(String query) async =>
       (await searchPage(query)).items;
+
+  /// Every enabled source participates in search and discovery, so the user
+  /// never has to pick a channel before searching.
+  List<BookSource> get enabledSources =>
+      store.sources.where((source) => source.enabled).toList();
+
+  /// The channel a stored book belongs to, for filtering an aggregated result.
+  String? channelNameOf(int id) {
+    if (!isSourceBook(id)) return null;
+    final sourceId = store.book(id)?['source'];
+    return sourceId is String ? store.source(sourceId)?.name : null;
+  }
+
+  /// Sources answer independently: one broken site must not hide the rest.
+  Future<List<List<Map<String, dynamic>>>> _queryAll(
+    List<BookSource> sources,
+    String method, {
+    String query = '',
+    int page = 1,
+  }) async {
+    const concurrency = 8;
+    final results = <List<Map<String, dynamic>>>[];
+    Object? firstError;
+    for (var start = 0; start < sources.length; start += concurrency) {
+      final chunk = sources.skip(start).take(concurrency);
+      final settled = await Future.wait([
+        for (final source in chunk)
+          () async {
+            try {
+              final items = await _books(
+                method,
+                source,
+                query: query,
+                page: page,
+              );
+              return (items: items, error: null as Object?);
+            } catch (error) {
+              return (items: const <Map<String, dynamic>>[], error: error);
+            }
+          }(),
+      ]);
+      for (final entry in settled) {
+        if (entry.error != null) {
+          firstError ??= entry.error;
+        } else {
+          results.add(entry.items);
+        }
+      }
+    }
+    if (results.isEmpty && firstError != null) throw firstError;
+    return results;
+  }
+
   @override
   Future<NovelPage> browse({
     NovelSort sort = NovelSort.lastUpdate,
     int page = 1,
     bool refresh = false,
   }) async {
-    final source = store.active;
-    if (source == null) {
+    final sources = enabledSources;
+    if (sources.isEmpty) {
       return legacy.browse(sort: sort, page: page, refresh: refresh);
     }
-    if (!source.hasExplore) {
+    final exploring = sources
+        .where((source) => source.hasExplore)
+        .toList(growable: false);
+    if (exploring.isEmpty) {
       return NovelPage(items: const [], page: page, totalPages: page);
     }
-    final books = await _books('browse', source, page: page);
+    final results = await _queryAll(exploring, 'browse', page: page);
+    final books = [for (final items in results) ...items.map(_novel)];
     return NovelPage(
-      items: books.map(_novel).toList(),
+      items: books,
       page: page,
       totalPages: books.isEmpty ? page : null,
     );
@@ -108,17 +165,21 @@ class SourceRepository extends NovelRepository
     int page = 1,
     bool refresh = false,
   }) async {
-    final source = store.active;
-    if (source == null) {
+    final sources = enabledSources;
+    if (sources.isEmpty) {
       return legacy.searchPage(query, page: page, refresh: refresh);
     }
-    final books = await _books('search', source, query: query, page: page);
-    // Sources without a page variable must not repeat the same search forever.
-    final paged = '${source.json['searchUrl']}'.contains('page');
-    return NovelPage(
-      items: books.map(_novel).toList(),
+    final results = await _queryAll(
+      sources,
+      'search',
+      query: query,
       page: page,
-      totalPages: !paged || books.isEmpty ? page : null,
+    );
+    final books = [for (final items in results) ...items.map(_novel)];
+    return NovelPage(
+      items: books,
+      page: page,
+      totalPages: books.isEmpty ? page : null,
     );
   }
 
@@ -129,7 +190,7 @@ class SourceRepository extends NovelRepository
     int page = 1,
     bool refresh = false,
   }) {
-    if (store.active == null) {
+    if (enabledSources.isEmpty) {
       return legacy.searchFilteredPage(
         query,
         field: field,
@@ -147,7 +208,7 @@ class SourceRepository extends NovelRepository
     bool refresh = false,
     bool Function()? current,
   }) {
-    if (store.active == null && legacy is ProgressiveTagCatalogue) {
+    if (enabledSources.isEmpty && legacy is ProgressiveTagCatalogue) {
       return (legacy as ProgressiveTagCatalogue).tagPage(
         tag,
         page: page,

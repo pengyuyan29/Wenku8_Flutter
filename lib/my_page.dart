@@ -167,7 +167,14 @@ class MyPage extends StatelessWidget {
                 FeatureEntry(
                   key: const ValueKey('my-sources'),
                   title: '书源',
-                  subtitle: sources.active?.name ?? '轻小说文库 · 导入阅读书源',
+                  subtitle: () {
+                    final enabled = sources.sources
+                        .where((source) => source.enabled)
+                        .length;
+                    return enabled == 0
+                        ? '轻小说文库 · 导入阅读书源'
+                        : '$enabled 个书源 · 聚合搜索与管理';
+                  }(),
                   icon: CupertinoIcons.square_stack,
                   onTap: () => pushNovelPage<void>(
                     context,

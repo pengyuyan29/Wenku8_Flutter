@@ -78,7 +78,6 @@ Future<void> main() async {
     await sources.importText(
       await rootBundle.loadString('assets/sources/defaults.json'),
     );
-    await sources.select('https://api.midukanshu.com');
   }
   SourceMedia.store = sources;
   final sourceRepository = SourceRepository(legacy: remote, store: sources);
