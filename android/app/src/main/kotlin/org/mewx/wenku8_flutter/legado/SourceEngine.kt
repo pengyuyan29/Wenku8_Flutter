@@ -135,7 +135,7 @@ class SourceEngine(private val http: SourceHttp = SourceHttp(), private val chin
     fun url(template: String, rules: RuleEvaluator): String {
         if (template.startsWith("@js:") || template.startsWith("<js>")) return rules.eval(template.removePrefix("@js:").removePrefix("<js>").removeSuffix("</js>"))
         val charset = Regex("[\"']charset[\"']\\s*:\\s*[\"']([^\"']+)").find(template)?.groupValues?.get(1) ?: "UTF-8"
-        var value = Regex("\\{\\{(.*?)}}", RegexOption.DOT_MATCHES_ALL).replace(template) {
+        var value = Regex("\\{\\{(.*?)\\}\\}", RegexOption.DOT_MATCHES_ALL).replace(template) {
             when (it.groupValues[1].trim()) {
                 "key", "searchKey" -> SourceHttp.encode(rules.bindings["key"].toString(), charset)
                 "page" -> rules.bindings["page"].toString()

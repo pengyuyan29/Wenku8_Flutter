@@ -77,7 +77,7 @@ class RuleEvaluator(val http: SourceHttp, val headers: Map<String, String> = emp
         content = input
         return try { analyze(rawRule, input) } finally { content = previous }
     }
-    private fun expand(text: String, input: Any): String = Regex("\\{\\{(.*?)}}", RegexOption.DOT_MATCHES_ALL).replace(text) {
+    private fun expand(text: String, input: Any): String = Regex("\\{\\{(.*?)\\}\\}", RegexOption.DOT_MATCHES_ALL).replace(text) {
         val expr = it.groupValues[1].trim()
         if (expr.startsWith("@") || expr.startsWith("$.") || expr.startsWith("$[") || expr.startsWith("//")) text(expr, input) else eval(expr, input)
     }
@@ -90,7 +90,7 @@ class RuleEvaluator(val http: SourceHttp, val headers: Map<String, String> = emp
             vars.keys().forEach { variables[it] = text(vars.getString(it), input) }
             rule = rule.substring(end + 1)
         }
-        if (rule.matches(Regex("@get:\\{[^}]+}"))) return listOf(variables[rule.substring(6, rule.length - 1)].orEmpty())
+        if (rule.matches(Regex("@get:\\{[^}]+\\}"))) return listOf(variables[rule.substring(6, rule.length - 1)].orEmpty())
         // A <js> block is one stage; following CSS/JSON rules operate on its result.
         val block = rule.indexOf("<js>", ignoreCase = true)
         if (block >= 0) {
@@ -112,13 +112,13 @@ class RuleEvaluator(val http: SourceHttp, val headers: Map<String, String> = emp
             val result = if (evaluated is List<*>) evaluated.filterNotNull() else listOfNotNull(evaluated)
             return replace(result, parts, input)
         }
-        val hadTemplate = rule.contains("{{") || Regex("\\{\\$[^}]+}").containsMatchIn(rule)
-        rule = Regex("@get:\\{([^}]+)}").replace(rule) { variables[it.groupValues[1]].orEmpty() }
-        rule = Regex("\\{\\{(.*?)}}", RegexOption.DOT_MATCHES_ALL).replace(rule) {
+        val hadTemplate = rule.contains("{{") || Regex("\\{\\$[^}]+\\}").containsMatchIn(rule)
+        rule = Regex("@get:\\{([^}]+)\\}").replace(rule) { variables[it.groupValues[1]].orEmpty() }
+        rule = Regex("\\{\\{(.*?)\\}\\}", RegexOption.DOT_MATCHES_ALL).replace(rule) {
             val expr = it.groupValues[1].trim()
             if (expr.startsWith("@") || expr.startsWith("$.") || expr.startsWith("$[") || expr.startsWith("//")) text(expr, input) else eval(expr, input)
         }
-        rule = Regex("\\{(\\$[^}]+)}").replace(rule) { text(it.groupValues[1], input) }
+        rule = Regex("\\{(\\$[^}]+)\\}").replace(rule) { text(it.groupValues[1], input) }
         if (rule.startsWith("http://") || rule.startsWith("https://") || hadTemplate) {
             val parts = split(rule, "##"); return replace(listOf(parts.first()), parts, input)
         }
